@@ -1,0 +1,12 @@
+# Built binaries
+/trading212-exporter
+
+# IDE configs
+.idea/
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+.serena
+docs/superpowers
