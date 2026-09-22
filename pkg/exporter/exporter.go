@@ -82,8 +82,7 @@ func (e *Exporter) Export(ctx context.Context) (*AccountReport, error) {
 	}
 	defer summaryResp.Body.Close()
 	if summaryResp.StatusCode != 200 {
-		bodyBytes, _ := io.ReadAll(summaryResp.Body)
-		return nil, fmt.Errorf("unexpected status fetching account summary: %d, body: %s", summaryResp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("unexpected status fetching account summary: %d", summaryResp.StatusCode)
 	}
 	summary, err := gen.ParseGetAccountSummaryResponse(summaryResp)
 	if err != nil {
@@ -100,8 +99,7 @@ func (e *Exporter) Export(ctx context.Context) (*AccountReport, error) {
 	}
 	defer posResp.Body.Close()
 	if posResp.StatusCode != 200 {
-		bodyBytes, _ := io.ReadAll(posResp.Body)
-		return nil, fmt.Errorf("unexpected status fetching positions: %d, body: %s", posResp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("unexpected status fetching positions: %d", posResp.StatusCode)
 	}
 	positions, err := gen.ParseGetPositionsResponse(posResp)
 	if err != nil {
@@ -118,8 +116,7 @@ func (e *Exporter) Export(ctx context.Context) (*AccountReport, error) {
 	}
 	defer piesResp.Body.Close()
 	if piesResp.StatusCode != 200 {
-		bodyBytes, _ := io.ReadAll(piesResp.Body)
-		return nil, fmt.Errorf("unexpected status fetching pies: %d, body: %s", piesResp.StatusCode, string(bodyBytes))
+		return nil, fmt.Errorf("unexpected status fetching pies: %d", piesResp.StatusCode)
 	}
 	pies, err := gen.ParseGetAllResponse(piesResp)
 	if err != nil {
@@ -149,7 +146,7 @@ func (e *Exporter) Export(ctx context.Context) (*AccountReport, error) {
 			return nil, fmt.Errorf("failed to read pie details body for %d: %w", pieID, readErr)
 		}
 		if detResp.StatusCode != 200 {
-			return nil, fmt.Errorf("unexpected status fetching pie details for %d: %d, body: %s", pieID, detResp.StatusCode, formatBodyForError(bodyBytes))
+			return nil, fmt.Errorf("unexpected status fetching pie details for %d: %d", pieID, detResp.StatusCode)
 		}
 		detResp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		detailedPie, err := gen.ParseGetDetailedResponse(detResp)

@@ -1,12 +1,16 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -190,6 +194,76 @@ func TestPacedTransport_WithSecret(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer resp.Body.Close()
+}
+
+func TestPacedTransport_LogsAndPreservesErrorResponseBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Request-ID", "request-123")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"invalid credentials"}`))
+	}))
+	defer server.Close()
+
+	var logs bytes.Buffer
+	transport := &PacedTransport{
+		ApiKey:    "test-key",
+		ApiSecret: "test-secret",
+		Transport: http.DefaultTransport,
+		Logger:    slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelDebug})),
+	}
+
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading response body: %v", err)
+	}
+	if got, want := string(body), `{"error":"invalid credentials"}`; got != want {
+		t.Errorf("response body = %q, want %q", got, want)
+	}
+
+	logOutput := logs.String()
+	if !strings.Contains(logOutput, "HTTP request failed") {
+		t.Errorf("expected error diagnostic, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "invalid credentials") {
+		t.Errorf("expected response body in diagnostic, got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "request-123") {
+		t.Errorf("expected response headers in diagnostic, got: %s", logOutput)
+	}
+}
+
+func TestPacedTransport_HidesErrorResponseBodyAtInfoLevel(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"invalid credentials"}`))
+	}))
+	defer server.Close()
+
+	var logs bytes.Buffer
+	transport := &PacedTransport{
+		ApiKey:    "test-key",
+		ApiSecret: "test-secret",
+		Transport: http.DefaultTransport,
+		Logger:    slog.New(slog.NewTextHandler(&logs, &slog.HandlerOptions{Level: slog.LevelInfo})),
+	}
+
+	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, server.URL, nil)
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if strings.Contains(logs.String(), "invalid credentials") {
+		t.Errorf("INFO-level logger exposed response body: %s", logs.String())
+	}
 }
 
 func TestPacedTransport_RetryOn5xx(t *testing.T) {

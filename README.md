@@ -77,6 +77,7 @@ You can cleanly redirect the output to a JSON file:
 - `make build`: Compile the binary.
 - `make test`: Run all package unit tests.
 - `make generate`: Regenerate the OpenAPI client code from `api.yaml`.
+- `make update-schema`: Download the latest Trading 212 OpenAPI schema and regenerate the client.
 - `make clean`: Remove the compiled binary.
 
 ## JSON Output Structure

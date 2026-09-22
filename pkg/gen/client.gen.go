@@ -315,10 +315,12 @@ func (e HistoryDividendItemType) Valid() bool {
 
 // Defines values for HistoryTransactionItemType.
 const (
-	DEPOSIT  HistoryTransactionItemType = "DEPOSIT"
-	FEE      HistoryTransactionItemType = "FEE"
-	TRANSFER HistoryTransactionItemType = "TRANSFER"
-	WITHDRAW HistoryTransactionItemType = "WITHDRAW"
+	DEPOSIT            HistoryTransactionItemType = "DEPOSIT"
+	FEE                HistoryTransactionItemType = "FEE"
+	INTERESTONFREECASH HistoryTransactionItemType = "INTEREST_ON_FREE_CASH"
+	LENDINGINTEREST    HistoryTransactionItemType = "LENDING_INTEREST"
+	TRANSFER           HistoryTransactionItemType = "TRANSFER"
+	WITHDRAW           HistoryTransactionItemType = "WITHDRAW"
 )
 
 // Valid indicates whether the value is a known member of the HistoryTransactionItemType enum.
@@ -327,6 +329,10 @@ func (e HistoryTransactionItemType) Valid() bool {
 	case DEPOSIT:
 		return true
 	case FEE:
+		return true
+	case INTERESTONFREECASH:
+		return true
+	case LENDINGINTEREST:
 		return true
 	case TRANSFER:
 		return true
@@ -1093,7 +1099,7 @@ type PositionWalletImpact struct {
 	// CurrentValue The current market value of the position.
 	CurrentValue *float32 `json:"currentValue,omitempty"`
 
-	// FxImpact The positive or negative impact on the position's value due to currency rate changes.
+	// FxImpact The positive or negative impact on the position's value due to currency rate changes. Only applies to positions with instrument currency that differs from the accounts.
 	FxImpact *float32 `json:"fxImpact,omitempty"`
 
 	// TotalCost The total cost paid for the position.

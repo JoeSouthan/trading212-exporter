@@ -136,6 +136,33 @@ func TestExporter_Export(t *testing.T) {
 	}
 }
 
+func TestExporter_Export_StatusErrorDoesNotIncludeResponseBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"invalid credentials"}`))
+	}))
+	defer server.Close()
+
+	httpClient := &http.Client{
+		Transport: &client.PacedTransport{ApiKey: "test"},
+	}
+	genClient, _ := gen.NewClient(server.URL, gen.WithHTTPClient(httpClient))
+	exp := NewExporter(&client.Client{GenClient: genClient})
+
+	_, err := exp.Export(context.Background())
+	if err == nil {
+		t.Fatal("expected status error, got nil")
+	}
+
+	errStr := err.Error()
+	if !strings.Contains(errStr, "unexpected status fetching account summary: 401") {
+		t.Errorf("expected status code in error, got: %s", errStr)
+	}
+	if strings.Contains(errStr, "invalid credentials") {
+		t.Errorf("status error exposed response body: %s", errStr)
+	}
+}
+
 func TestExporter_Export_PieDetailsParseErrorIncludesBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

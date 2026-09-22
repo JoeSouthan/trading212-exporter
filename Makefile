@@ -1,4 +1,7 @@
-.PHONY: all build test clean generate
+SCHEMA_URL ?= https://docs.trading212.com/_bundle/api.yaml?download
+SCHEMA_FILE ?= pkg/gen/api.yaml
+
+.PHONY: all build test clean generate update-schema
 
 all: generate clean build
 
@@ -13,6 +16,11 @@ test:
 
 generate:
 	go generate ./...
+
+update-schema:
+	curl --fail --location --silent --show-error --output "$(SCHEMA_FILE).tmp" "$(SCHEMA_URL)"
+	mv "$(SCHEMA_FILE).tmp" "$(SCHEMA_FILE)"
+	$(MAKE) generate
 
 clean:
 	rm -f trading212-exporter

@@ -318,6 +318,8 @@ components:
             - DEPOSIT
             - FEE
             - TRANSFER
+            - INTEREST_ON_FREE_CASH
+            - LENDING_INTEREST
           type: string
       type: object
     Instrument:
@@ -605,7 +607,8 @@ components:
         fxImpact:
           description: >-
             The positive or negative impact on the position's value due to
-            currency rate changes.
+            currency rate changes. Only applies to positions with instrument
+            currency that differs from the accounts.
           type: number
         totalCost:
           description: The total cost paid for the position.
@@ -927,8 +930,11 @@ info:
 
     # The `-n` is important as it prevents adding a newline character.
 
+    # `tr -d '\n'` strips any line wraps added by GNU base64 on Linux.
 
-    CREDENTIALS=$(echo -n "<YOUR_API_KEY>:<YOUR_API_SECRET>" | base64)
+
+    CREDENTIALS=$(echo -n "<YOUR_API_KEY>:<YOUR_API_SECRET>" | base64 | tr -d
+    '\n')
 
 
 
@@ -975,7 +981,10 @@ info:
 
     with `echo` to prevent it from adding a trailing newline, which would
 
-    invalidate the credential string.
+    invalidate the credential string. On Linux, GNU `base64` wraps output at 76
+
+    characters by default — pipe through `tr -d '\n'` to strip those line
+    breaks.
 
 
     ```bash
@@ -984,7 +993,7 @@ info:
     # This command outputs the required Base64-encoded string for your header.
 
 
-    echo -n "<YOUR_API_KEY>:<YOUR_API_SECRET>" | base64
+    echo -n "<YOUR_API_KEY>:<YOUR_API_SECRET>" | base64 | tr -d '\n'
 
 
     ```

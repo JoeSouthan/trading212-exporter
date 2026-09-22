@@ -1,9 +1,11 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -74,6 +76,30 @@ type PacedTransport struct {
 	Transport http.RoundTripper
 	Limiter   *RateLimiter
 	Logger    *slog.Logger
+}
+
+func formatBodyForLog(body []byte) string {
+	const maxBodyLen = 4096
+	if len(body) <= maxBodyLen {
+		return string(body)
+	}
+	return string(body[:maxBodyLen]) + "...(truncated)"
+}
+
+func logErrorResponse(logger *slog.Logger, ctx context.Context, resp *http.Response) {
+	if resp.StatusCode < http.StatusBadRequest || resp.Body == nil {
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.DebugContext(ctx, "HTTP request failed; could not read response body", "status", resp.StatusCode, "headers", resp.Header, "error", err)
+		return
+	}
+	_ = resp.Body.Close()
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+
+	logger.DebugContext(ctx, "HTTP request failed", "status", resp.StatusCode, "headers", resp.Header, "body", formatBodyForLog(body))
 }
 
 func (t *PacedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -172,6 +198,7 @@ func (t *PacedTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		break
 	}
 
+	logErrorResponse(logger, req.Context(), resp)
 	logger.InfoContext(req.Context(), "← response", "method", req.Method, "status", resp.StatusCode, "url", req.URL.String())
 
 	return resp, nil
