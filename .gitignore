@@ -4,6 +4,9 @@
 # Local API credentials
 .env
 
+# Local exporter output
+/output.json
+
 # IDE configs
 .idea/
 .vscode/
