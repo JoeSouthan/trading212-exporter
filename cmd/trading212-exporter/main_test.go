@@ -50,6 +50,71 @@ func TestCLI_MissingAPISecret(t *testing.T) {
 	}
 }
 
+func TestCLI_LoadsCredentialsFromDotenv(t *testing.T) {
+	t.Chdir(t.TempDir())
+	unsetEnv(t, "TRADING212_API_KEY")
+	unsetEnv(t, "TRADING212_API_SECRET")
+
+	if err := os.WriteFile(".env", []byte("TRADING212_API_KEY=dotenv-key\nTRADING212_API_SECRET=dotenv-secret\n"), 0600); err != nil {
+		t.Fatalf("writing .env: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			t.Error("Expected basic auth header")
+		}
+		if username != "dotenv-key" {
+			t.Errorf("Expected username 'dotenv-key', got %q", username)
+		}
+		if password != "dotenv-secret" {
+			t.Errorf("Expected password 'dotenv-secret', got %q", password)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v0/equity/account/summary":
+			_, _ = w.Write([]byte(`{"id": 789, "currency": "USD", "totalValue": 100.0, "cash": {}}`))
+		case "/api/v0/equity/positions", "/api/v0/equity/pies":
+			_, _ = w.Write([]byte(`[]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	t.Setenv("TRADING212_API_URL", server.URL)
+
+	cmd := newRootCommand()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	if err := cmd.ExecuteContext(context.Background()); err != nil {
+		t.Fatalf("Unexpected error executing command: %v. Output/Stderr: %s", err, buf.String())
+	}
+
+	if !bytes.Contains(buf.Bytes(), []byte(`"account_id": 789`)) {
+		t.Errorf("Expected output to contain account_id 789, got:\n%s", buf.String())
+	}
+}
+
+func unsetEnv(t *testing.T, key string) {
+	t.Helper()
+
+	value, wasSet := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("unsetting %s: %v", key, err)
+	}
+	t.Cleanup(func() {
+		if wasSet {
+			_ = os.Setenv(key, value)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
+}
+
 func TestCLI_WithFlagAPIKeyAndDemo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -136,4 +201,3 @@ func TestCLI_WithApiSecret(t *testing.T) {
 		t.Errorf("Expected output to contain account_id 456, got:\n%s", output)
 	}
 }
-

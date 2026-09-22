@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/joesouthan/trading212-exporter/pkg/client"
 	"github.com/joesouthan/trading212-exporter/pkg/exporter"
+	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +40,10 @@ func newRootCommand() *cobra.Command {
 		SilenceErrors: true,
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := loadDotenv(); err != nil {
+				return err
+			}
+
 			if apiKey == "" {
 				apiKey = os.Getenv("TRADING212_API_KEY")
 			}
@@ -90,4 +96,12 @@ func newRootCommand() *cobra.Command {
 	cmd.Flags().DurationVar(&timeout, "timeout", 60*time.Second, "Per-request HTTP timeout")
 
 	return cmd
+}
+
+func loadDotenv() error {
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("loading .env file: %w", err)
+	}
+
+	return nil
 }

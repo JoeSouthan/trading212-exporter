@@ -51,6 +51,15 @@ export TRADING212_API_SECRET="your-api-secret-here"
 ./trading212-exporter --live
 ```
 
+You can instead create a `.env` file in the directory where you run the command (copy `.env.example` as a starting point). It is loaded automatically, without replacing environment variables already set in your shell:
+
+```dotenv
+TRADING212_API_KEY="your-api-key-here"
+TRADING212_API_SECRET="your-api-secret-here"
+```
+
+CLI flags take precedence over both shell and `.env` values.
+
 Alternatively, you can pass them via CLI flags:
 
 ```bash

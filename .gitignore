@@ -1,6 +1,9 @@
 # Built binaries
 /trading212-exporter
 
+# Local API credentials
+.env
+
 # IDE configs
 .idea/
 .vscode/

@@ -3,6 +3,7 @@ module github.com/joesouthan/trading212-exporter
 go 1.26.3
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/oapi-codegen/runtime v1.4.1
 	github.com/spf13/cobra v1.10.2
 )
